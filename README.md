@@ -61,10 +61,12 @@ open them up. gut the original light. and mount the Led stripts and connect them
 #### tail light:
 open the unit. ( in oven 105 degrees for 10 min)
 3d print the support bars glue the together.
+
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail1.jpeg" width="200"  alt="Tail 1">
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail2.jpeg" width="200"  alt="Tail 2">
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail3.jpeg" width="200"  alt="Tail 3">
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail4.jpeg" width="200"  alt="Tail 4">
+
 glue the in the blinker location and glue LED strips on them. en connect the stripts together.
 if needed paint the stripts grey
 
@@ -83,6 +85,7 @@ Brake pin D5
 Blinker left pin  D6
 blinker right pin D4
 and print the Case for the switch
+
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Switch.jpeg" width="200"  alt="Switch">
 
 
