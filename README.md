@@ -5,6 +5,8 @@ First of, this my mod for my own bike. Your free to use it. but it's for your ow
 
 ## So how does it look
 
+Click on images to see movie ;-)
+
 [![Demo lichts](https://github.com/sabsteef/MotorCycleLight/blob/master/Images/ready.jpeg)](https://www.youtube.com/watch?v=mF-TudgtvgI)
 
 ## What parts do you need:
@@ -47,8 +49,12 @@ https://www.motorparts-online.com/nl/honda/vfr-1200/2010-2013/achterlicht/201331
 what i did to make it:
 #### Mirrors:
 open them up. gut the original light. and mount the Led stripts and connect them to 1 strip.
-( Images here)
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror1.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
 
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror2.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
+
+
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror3.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
 #### tail light:
 open the unit. ( in oven 105 degrees for 10 min)
 3d print the support bars glue the together.
