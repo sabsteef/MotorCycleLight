@@ -51,12 +51,12 @@ what i did to make it:
 open them up. gut the original light. and mount the Led stripts and connect them to 1 strip.
 
 
-<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror1.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror1.jpeg" width="200"  alt="mirror 1">
 
-<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror2.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror2.jpeg" width="200"  alt="mirror 2">
 
 
-<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror3.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror3.jpeg" width="200"  alt="mirror 3">
 
 #### tail light:
 open the unit. ( in oven 105 degrees for 10 min)
@@ -97,7 +97,7 @@ pin 10 to Brake
 
 PS the code i provided is coded how i sticked the LEDS in the light units. it can be difrend then yours.
 
-( images here)
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/arduinona.jpeg" width="200"  alt="Nano">
 
 
 
