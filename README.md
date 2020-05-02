@@ -103,3 +103,4 @@ PS the code i provided is coded how i sticked the LEDS in the light units. it ca
 
 ## whats Next?!
 Im not finished yet. changed will be posted here.
+- Speedup Boottime Nano ( removing the bootloader
