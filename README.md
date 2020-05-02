@@ -5,7 +5,7 @@ First of, this my mod for my own bike. Your free to use it. but it's for your ow
 
 ## So how does it look
 
-[![Demo lichts](https://img.youtube.com/vi/mF-TudgtvgI/0.jpg)](https://www.youtube.com/watch?v=mF-TudgtvgI)
+[![Demo lichts](https://github.com/sabsteef/MotorCycleLight/blob/master/Images/ready.jpeg)](https://www.youtube.com/watch?v=mF-TudgtvgI)
 
 ## What parts do you need:
 
