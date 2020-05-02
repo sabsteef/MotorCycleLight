@@ -49,17 +49,22 @@ https://www.motorparts-online.com/nl/honda/vfr-1200/2010-2013/achterlicht/201331
 what i did to make it:
 #### Mirrors:
 open them up. gut the original light. and mount the Led stripts and connect them to 1 strip.
+
+
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror1.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
 
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror2.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
 
 
 <img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Mirror3.jpeg" width="200"  alt="Toon Remote Controller on Home Screen">
+
 #### tail light:
 open the unit. ( in oven 105 degrees for 10 min)
 3d print the support bars glue the together.
-( images here)
-
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail1.jpeg" width="200"  alt="Tail 1">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail2.jpeg" width="200"  alt="Tail 2">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail3.jpeg" width="200"  alt="Tail 3">
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/tail4.jpeg" width="200"  alt="Tail 4">
 glue the in the blinker location and glue LED strips on them. en connect the stripts together.
 if needed paint the stripts grey
 
@@ -78,7 +83,7 @@ Brake pin D5
 Blinker left pin  D6
 blinker right pin D4
 and print the Case for the switch
-( images here)
+<img src="https://github.com/sabsteef/MotorCycleLight/blob/master/Images/Switch.jpeg" width="200"  alt="Switch">
 
 
 #### Nano
