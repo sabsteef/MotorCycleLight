@@ -11,6 +11,13 @@
  Arduino Pin Mapping:
  - 00 = Serial RX USB Serial
  - 01 = Serial TX USB Serial
+ - 04 = Switch blinker Right
+ - 05 = Switch Brake
+ - 06 = Switch blinker Left
+ - 10 = LED tail light
+ - 11 = LED mirror Left
+ - 12 = LED mirror Right
+
 
  
 */
