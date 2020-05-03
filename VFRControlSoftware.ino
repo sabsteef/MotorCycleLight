@@ -1,21 +1,37 @@
-//working version
-#include <FastLED.h>  //control LED
+/*
+ Version 0.3
+ Author:
+ - Sabsteef (Sabsteef@hotmail.com)
+ 
+ Hardware:
+ - Arduino Nano (Compatible board)
+ Software:
+ - Arduino 1.8.10
+
+ Arduino Pin Mapping:
+ - 00 = Serial RX USB Serial
+ - 01 = Serial TX USB Serial
+
+ 
+*/
+
+#include <FastLED.h>  // Control LED
 #include <Chrono.h>   // Control Multitasking
 
- //Left Front Mirror
- #define LFM_NUM_LEDS 40
- #define LFM_DATA_PIN 11
+//Left Front Mirror
+#define LFM_NUM_LEDS 40
+#define LFM_DATA_PIN 11
 
 //Right Front Mirror
- #define RFM_NUM_LEDS 40
- #define RFM_DATA_PIN 12
+#define RFM_NUM_LEDS 40
+#define RFM_DATA_PIN 12
 
 //Tail Light
- #define NUM_LEDS 92
- #define DATA_PIN 10
+#define TAIL_NUM_LEDS 92
+#define TAIL_DATA_PIN 10
 
- //CRGB Settings
-CRGB leds[NUM_LEDS];
+//CRGB Settings
+CRGB TAIL_Leds[TAIL_NUM_LEDS];
 CRGB LFM_Leds[LFM_NUM_LEDS];
 CRGB RFM_Leds[RFM_NUM_LEDS];
 
@@ -24,26 +40,26 @@ CRGB RFM_Leds[RFM_NUM_LEDS];
 const int buttonblinkLSwitch = 6;
 const int buttonblinkRSwitch = 4;
 const int buttonBrakeSwitch  = 5; 
-const int buttonWarningSwitch  = 3;  //not used
 
 
 //Values
 int buttonblinkR = 0;
 int buttonblinkL = 0; 
 int buttonBrake  = 0;
-int buttonWarninglichts  = 0; //not used
+int Debug = 0;
+
 
 
 
 // Instantiate Chronos treats
-Chrono chronoA; 
-Chrono chronoB;
-Chrono chronoC;
-Chrono chronoD;
-Chrono chronoE;
-Chrono chronoF;
+Chrono chrono_TailLight; 
+Chrono chrono_Blinkers;
+Chrono chronoC; //not used
+Chrono chronoD; // not used
+Chrono chrono_blinkerR;
+Chrono chrono_blinkerL;
 Chrono chronoG; //not used
-Chrono chronoX;
+Chrono chrono_brakelight;
 
 // Check interters
 
@@ -58,49 +74,50 @@ void setup() {
     delay(1000);
  
   //PinLayouts
-  //inputs switches
+    //inputs switches
     pinMode(buttonblinkRSwitch, INPUT);
     pinMode(buttonblinkLSwitch, INPUT);
     pinMode(buttonBrakeSwitch,  INPUT);
-    pinMode(buttonWarningSwitch,  INPUT); //not used
 
  
 
-    //Set Led Matrix
-    
-    // Tail Light
-    FastLED.addLeds<WS2812B, DATA_PIN, GRB>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
+  //Set Led Matrix
     
     // Left Front Mirror
     FastLED.addLeds<WS2812B, LFM_DATA_PIN, GRB>(LFM_Leds, LFM_NUM_LEDS).setCorrection(TypicalSMD5050);
 
     // Right Front Mirror
     FastLED.addLeds<WS2812B, RFM_DATA_PIN, GRB>(RFM_Leds, RFM_NUM_LEDS).setCorrection(TypicalSMD5050);
+
+    // Tail Light
+    FastLED.addLeds<WS2812B, TAIL_DATA_PIN, GRB>(TAIL_Leds, TAIL_NUM_LEDS).setCorrection(TypicalSMD5050);
     
-    //set brightness all LED
+    // Set brightness all LED
     FastLED.setBrightness(255);
     
 
-  // FastLED provides these pre-conigured incandescent color profiles:
-  //     Candle, Tungsten40W, Tungsten100W, Halogen, CarbonArc,
-  //     HighNoonSun, DirectSunlight, OvercastSky, ClearBlueSky,
-  // FastLED provides these pre-configured gaseous-light color profiles:
-  //     WarmFluorescent, StandardFluorescent, CoolWhiteFluorescent,
-  //     FullSpectrumFluorescent, GrowLightFluorescent, BlackLightFluorescent,
-  //     MercuryVapor, SodiumVapor, MetalHalide, HighPressureSodium,
-  // FastLED also provides an "Uncorrected temperature" profile
-  //    UncorrectedTemperature;
+  /* FastLED provides these pre-conigured incandescent color profiles:
+     Candle, Tungsten40W, Tungsten100W, Halogen, CarbonArc,
+     HighNoonSun, DirectSunlight, OvercastSky, ClearBlueSky,
+     FastLED provides these pre-configured gaseous-light color profiles:
+     WarmFluorescent, StandardFluorescent, CoolWhiteFluorescent,
+     FullSpectrumFluorescent, GrowLightFluorescent, BlackLightFluorescent,
+     MercuryVapor, SodiumVapor, MetalHalide, HighPressureSodium,
+     FastLED also provides an "Uncorrected temperature" profile
+     UncorrectedTemperature; */
 
-    FastLED.setTemperature(Candle); 
-  //FastLED.setTemperature(DirectSunlight); 
+    //FastLED.setTemperature(Candle); 
+    FastLED.setTemperature(HighPressureSodium); 
 
     FastLED.clear();
-  //zet achterlight aan
-    AchterLicht(0,92);
-  //zet Dag rij verlichting aan  
+   
+    // Turn on DRL
     DRLLichtR(0,40,100);
     DRLLichtL(0,40,100);
-  //debug  
+
+     // Turn on Tail-Light
+    Tail_Light(0,92);
+    // Enable debug  
     Serial.begin(115200);
     Serial.println ("startup");
 }
@@ -108,64 +125,60 @@ void setup() {
 
 void loop() {
   // check buttons
+  buttonblinkL        = digitalRead(buttonblinkLSwitch);  
   buttonblinkR        = digitalRead(buttonblinkRSwitch);
-  buttonblinkL        = digitalRead(buttonblinkLSwitch);   
-  buttonWarninglichts = digitalRead(buttonWarningSwitch); 
   buttonBrake         = digitalRead(buttonBrakeSwitch);
   
-  if ( chronoA.hasPassed(50) ) { //Brake Licht
+  // Check if Brake light is needed
+  if ( chrono_TailLight.hasPassed(50) ) { 
     buttonBrake = digitalRead(buttonBrakeSwitch);
-    chronoA.restart();
+    chrono_TailLight.restart();
     if (buttonBrake == HIGH && buttonblinkL == LOW && buttonblinkR == LOW){
-      REMLicht(0,93,0);  
+      Brake_Light(0,93,0);  
     }
     if (buttonBrake == HIGH && buttonblinkL == HIGH && buttonblinkR == LOW){
-      REMLicht(0,46,0);
+      Brake_Light(0,46,0);
     }
     if (buttonBrake == HIGH && buttonblinkL == LOW && buttonblinkR == HIGH){
-      REMLicht(46,92,0); 
+      Brake_Light(46,92,0); 
     }
   }
 
-  
-  if ( chronoB.hasPassed(200) ) { //Blinkers
-    chronoB.restart(); 
+  // Check if Blinkers are needed
+  if ( chrono_Blinkers.hasPassed(60) ) { 
     if (buttonblinkL == HIGH){    //Check if Blinker links
-     //Serial.println ("startup knipperlicht L detected");
-      KnipperLichtLNEW(0,40,0);
-      KnipperLichtLAchterNEW(46,91,0);
-      chronoF.restart();
+     Serial.println ("startup knipperlicht L detected");
+      MirrorL_run(46,91,0);
+      chrono_blinkerL.restart(); 
     }  
-      else if (buttonblinkL == LOW && buttonWarninglichts == LOW){
+    else if (buttonblinkL == LOW){
         LA = 100;
         LV = 100;
     }
-    if (buttonblinkR == HIGH){
-     // Serial.println ("startup knipperlicht R detected");
-       KnipperLichtRNEW(0,40,0);
-       KnipperLichtRAchterNEW(0,46,0);
-       chronoE.restart(); 
-       //Police(0,40,0);
+    if (buttonblinkR == HIGH ){
+       MirrorR_run(0,46,0);
+       chrono_blinkerR.restart(); 
     }  
-      else if (buttonblinkR == LOW && buttonWarninglichts == LOW){
+      else if (buttonblinkR == LOW){
         RA = 100;
         RV = 100;
     }
+    chrono_Blinkers.restart();
   }
-
- if ( chronoX.hasPassed(101) ) { // returns true if it passed 250 ms since it was started
-    chronoX.restart(); // restart the crono so that it triggers again later
+ // check if default light can be reset.
+ if ( chrono_brakelight.hasPassed(101) ) {
+    chrono_brakelight.restart();
     if (buttonBrake == LOW || buttonblinkL == LOW || buttonblinkR == LOW){
       if (buttonBrake == LOW && buttonblinkL == LOW){
-      AchterLicht(46,92);
+      Tail_Light(46,92);
       }
       if (buttonBrake == LOW && buttonblinkR == LOW){
-      AchterLicht(0,46);
+      Tail_Light(0,46);
       }
-      if(buttonblinkL == LOW && buttonWarninglichts  == LOW ){
+      if(buttonblinkL == LOW ){
       DRLLichtL(0,40,100);
       }
-      if(buttonblinkR == LOW && buttonWarninglichts  == LOW ) {
+      if(buttonblinkR == LOW ) {
       DRLLichtR(0,40,100); 
       }
     }   
@@ -174,19 +187,19 @@ void loop() {
 
 
 // Tail-Light
-void AchterLicht(int st,int en){
+void Tail_Light(int st,int en){
   for(int dot = st; dot < en; dot++) { 
-      leds[dot] = CRGB::Red;
-      leds[dot].fadeToBlackBy(164);   
+      TAIL_Leds[dot] = CRGB::Red;
+      TAIL_Leds[dot].fadeToBlackBy(164);   
    }
    FastLED.show();    
 }
 
 //Brake-Light
-void REMLicht(int st,int en, int fade){
+void Brake_Light(int st,int en, int fade){
   for(int dot = st; dot < en; dot++) { 
-      leds[dot] = CRGB::Red;
-      leds[dot].fadeToBlackBy(fade); 
+      TAIL_Leds[dot] = CRGB::Red;
+      TAIL_Leds[dot].fadeToBlackBy(fade); 
 
   }
   FastLED.show();
@@ -221,384 +234,216 @@ void DRLLichtR(int st,int en, int fade ){
    }
    FastLED.show();
 }
-
-
-
-
-void KnipperLichtRAchterNEW(int st,int en, int fade){
-    if ( chronoE.hasPassed(100) ) { // returns true if it passed 100 ms since it was started
-     //chronoE.restart(); // restart the crono so that it triggers again later
-       //Serial.println ("knipperlicht R Fuction");
-      if (RA == 100){
-        for(int dot = st; dot < en; dot++) { 
-           leds[dot] = CRGB::Black;
-        } 
-        leds[2]  = CRGB::DarkOrange;
-        leds[3]  = CRGB::DarkOrange;
-        leds[4]  = CRGB::DarkOrange;
-        leds[5]  = CRGB::DarkOrange;
-        leds[6]  = CRGB::DarkOrange;
-        leds[7]  = CRGB::DarkOrange;
-        leds[19]  = CRGB::DarkOrange;
-        leds[20]  = CRGB::DarkOrange;
-        leds[21]  = CRGB::DarkOrange;
-        leds[22]  = CRGB::DarkOrange;
-        leds[23]  = CRGB::DarkOrange;
-        leds[24]  = CRGB::DarkOrange;
-        leds[35]  = CRGB::DarkOrange;
-        leds[36]  = CRGB::DarkOrange;
-        leds[37]  = CRGB::DarkOrange;
-        leds[43]  = CRGB::DarkOrange;
-        leds[44]  = CRGB::DarkOrange;
-        leds[45]  = CRGB::DarkOrange;
-
-        FastLED.show();
-        RA = 4;
-      }
-      else if (RA != 100){
-        if (RA >= en){ 
-           
-        RA = 100;
-        }
-        else {
-          if (RA == 4){
-           leds[0]  = CRGB::DarkOrange;
-           leds[1]  = CRGB::DarkOrange;
-           leds[8]  = CRGB::DarkOrange;
-           leds[9]  = CRGB::DarkOrange;
-           leds[10]  = CRGB::DarkOrange;
-           leds[16]  = CRGB::DarkOrange;
-           leds[17]  = CRGB::DarkOrange;
-           leds[18]  = CRGB::DarkOrange;
-           leds[25]  = CRGB::DarkOrange;
-           leds[26]  = CRGB::DarkOrange;
-           leds[27]  = CRGB::DarkOrange;
-           leds[38]  = CRGB::DarkOrange;
-           leds[39]  = CRGB::DarkOrange;
-           leds[40]  = CRGB::DarkOrange;
-           leds[42]  = CRGB::DarkOrange;
-
-           FastLED.show();
-           RA = 2; 
-          }
-           else if (RA == 2){
-
-           leds[11]  = CRGB::DarkOrange;
-           leds[12]  = CRGB::DarkOrange;
-           leds[13]  = CRGB::DarkOrange;
-           leds[14]  = CRGB::DarkOrange;
-           leds[15]  = CRGB::DarkOrange;
-           leds[30]  = CRGB::DarkOrange;
-           leds[29]  = CRGB::DarkOrange;
-           leds[28]  = CRGB::DarkOrange;
-           leds[41]  = CRGB::DarkOrange;
-
-           FastLED.show();
-           RA = 0; 
-          }
-          else if (RA == 0){
-
-             leds[31]  = CRGB::DarkOrange;
-             leds[32]  = CRGB::DarkOrange;
-
-             FastLED.show();
-             RA = 36; 
-          }
-          else if (RA == 36){
-
-           leds[33]  = CRGB::DarkOrange;
-           leds[34]  = CRGB::DarkOrange;
-
-           FastLED.show();
-           RA = 38; 
-          }
-          else if (RA == 38){
-
-           NoLED();
-           FastLED.show();
-           RA = 46; 
-          }    
-       }
-     }
-   }  
-}
-
-void KnipperLichtLNEW(int st,int en, int fade){
-    if ( chronoF.hasPassed(100) ) { // returns true if it passed 250 ms since it was started
-    // chronoF.restart(); // restart the crono so that it triggers again later
-     //  Serial.println ("knipperlicht L Fuction");
-      if (LV == 100){
-        for(int dot = st; dot < en; dot++) { 
-           LFM_Leds[dot] = CRGB::Black;
-        }
-        LFM_Leds[6]  = CRGB::DarkOrange;
-        LFM_Leds[7]  = CRGB::DarkOrange;
-        LFM_Leds[8]  = CRGB::DarkOrange;
-        LFM_Leds[9]  = CRGB::DarkOrange;
-        LFM_Leds[22] = CRGB::DarkOrange;
-        LFM_Leds[23] = CRGB::DarkOrange;
-        LFM_Leds[24] = CRGB::DarkOrange;
-        LFM_Leds[25] = CRGB::DarkOrange;
-
-        NoLED();
-        FastLED.show();
-        LV = 4;
-      }
-      else if (LV != 100){
-        if (LV >= en){ 
-           
-        LV = 100;
-        }
-        else {
-          if (LV == 4){
-           LFM_Leds[5]  = CRGB::DarkOrange;
-           LFM_Leds[10] = CRGB::DarkOrange;
-           LFM_Leds[21] = CRGB::DarkOrange;
-           LFM_Leds[26] = CRGB::DarkOrange;
-           LFM_Leds[4]  = CRGB::DarkOrange;
-           LFM_Leds[11] = CRGB::DarkOrange;
-           LFM_Leds[20] = CRGB::DarkOrange;
-           LFM_Leds[27] = CRGB::DarkOrange;
-
-           NoLED();
-           FastLED.show();
-           LV = 2; 
-          }
-           else if (LV == 2){
-           LFM_Leds[3]  = CRGB::DarkOrange;
-           LFM_Leds[12] = CRGB::DarkOrange;
-           LFM_Leds[19] = CRGB::DarkOrange;
-           LFM_Leds[28] = CRGB::DarkOrange;
-           LFM_Leds[2]  = CRGB::DarkOrange;
-           LFM_Leds[13] = CRGB::DarkOrange;
-           LFM_Leds[18] = CRGB::DarkOrange;
-           LFM_Leds[29] = CRGB::DarkOrange;
-
-
-  
-
-           NoLED();
-           FastLED.show();
-           LV = 0; 
-          }
-          else if (LV == 0){
-             LFM_Leds[1]  = CRGB::DarkOrange;
-             LFM_Leds[14] = CRGB::DarkOrange;
-             LFM_Leds[17] = CRGB::DarkOrange;
-             LFM_Leds[30] = CRGB::DarkOrange;
-             LFM_Leds[0]  = CRGB::DarkOrange;
-             LFM_Leds[15] = CRGB::DarkOrange;
-             LFM_Leds[16] = CRGB::DarkOrange;
-             LFM_Leds[31] = CRGB::DarkOrange;
-
-             NoLED();
-             FastLED.show();
-             LV = 36; 
-          }
-          else if (LV == 36){
-           LFM_Leds[34] = CRGB::DarkOrange;
-           LFM_Leds[37] = CRGB::DarkOrange;
-           LFM_Leds[35] = CRGB::DarkOrange;
-           LFM_Leds[36] = CRGB::DarkOrange;
-
-           
-           NoLED();
-           FastLED.show();
-           LV = 38; 
-          }
-          else if (LV == 38){
-           LFM_Leds[32] = CRGB::DarkOrange;
-           LFM_Leds[39] = CRGB::DarkOrange;
-           LFM_Leds[33] = CRGB::DarkOrange;
-           LFM_Leds[38] = CRGB::DarkOrange;
-           NoLED();
-           FastLED.show();
-           LV = 40; 
-          }    
-       }
-     }
-   }  
-}
-
-void KnipperLichtRNEW(int st,int en, int fade){
-    if ( chronoE.hasPassed(100) ) { // returns true if it passed 250 ms since it was started
-     //chronoE.restart(); // restart the crono so that it triggers again later
-     //  Serial.println ("knipperlicht R Fuction");
-      if (RV == 100){
-        for(int dot = st; dot < en; dot++) { 
-           RFM_Leds[dot] = CRGB::Black;
-        }
-        RFM_Leds[6]  = CRGB::DarkOrange;
-        RFM_Leds[7]  = CRGB::DarkOrange;
-        RFM_Leds[8]  = CRGB::DarkOrange;
-        RFM_Leds[9]  = CRGB::DarkOrange;
-        RFM_Leds[22] = CRGB::DarkOrange;
-        RFM_Leds[23] = CRGB::DarkOrange;
-        RFM_Leds[24] = CRGB::DarkOrange;
-        RFM_Leds[25] = CRGB::DarkOrange;
-        NoLED();
-        FastLED.show();
-        RV = 4;
-      }
-      else if (RV != 100){
-        if (RV >= en){ 
-        RV = 100;
-        }
-        else {
-          if (RV == 4){
-           RFM_Leds[5]  = CRGB::DarkOrange;
-           RFM_Leds[10] = CRGB::DarkOrange;
-           RFM_Leds[21] = CRGB::DarkOrange;
-           RFM_Leds[26] = CRGB::DarkOrange;
-           RFM_Leds[4]  = CRGB::DarkOrange;
-           RFM_Leds[11] = CRGB::DarkOrange;
-           RFM_Leds[20] = CRGB::DarkOrange;
-           RFM_Leds[27] = CRGB::DarkOrange;
-           NoLED();
-           FastLED.show();
-           RV = 2; 
-          }
-           else if (RV == 2){
-           RFM_Leds[3]  = CRGB::DarkOrange;
-           RFM_Leds[12] = CRGB::DarkOrange;
-           RFM_Leds[19] = CRGB::DarkOrange;
-           RFM_Leds[28] = CRGB::DarkOrange;
-           RFM_Leds[2]  = CRGB::DarkOrange;
-           RFM_Leds[13] = CRGB::DarkOrange;
-           RFM_Leds[18] = CRGB::DarkOrange;
-           RFM_Leds[29] = CRGB::DarkOrange;
-           NoLED();
-           FastLED.show();
-           RV = 0; 
-          }
-          else if (RV == 0){
-             RFM_Leds[1]  = CRGB::DarkOrange;
-             RFM_Leds[14] = CRGB::DarkOrange;
-             RFM_Leds[17] = CRGB::DarkOrange;
-             RFM_Leds[30] = CRGB::DarkOrange;
-             RFM_Leds[0]  = CRGB::DarkOrange;
-             RFM_Leds[15] = CRGB::DarkOrange;
-             RFM_Leds[16] = CRGB::DarkOrange;
-             RFM_Leds[31] = CRGB::DarkOrange;
-             NoLED();
-             FastLED.show();
-             RV = 36; 
-          }
-          else if (RV == 36){
-           RFM_Leds[32] = CRGB::DarkOrange;
-           RFM_Leds[39] = CRGB::DarkOrange;
-           RFM_Leds[33] = CRGB::DarkOrange;
-           RFM_Leds[38] = CRGB::DarkOrange;
-           NoLED();
-           FastLED.show();
-           RV = 38; 
-          }
-          else if (RV == 38){
-           RFM_Leds[34] = CRGB::DarkOrange;
-           RFM_Leds[37] = CRGB::DarkOrange;
-           RFM_Leds[35] = CRGB::DarkOrange;
-           RFM_Leds[36] = CRGB::DarkOrange;
-           NoLED();
-           FastLED.show();
-           RV = 40; 
-          }    
-       }
-     }
-   }  
-}
-
-void KnipperLichtLAchterNEW(int st,int en, int fade){
-    if ( chronoF.hasPassed(100) ) { // returns true if it passed 100 ms since it was started
-     chronoD.restart(); // restart the crono so that it triggers again later
-    //   Serial.println ("knipperlicht L Fuction");
-
+// Runnig lights Left side
+void MirrorL_run(int st,int en, int fade){
+    if ( chrono_blinkerL.hasPassed(10) ) {
+     //chrono_blinkerL.restart(); // restart the crono so that it triggers again later
       if (LA == 100){
-        for(int dot = st; dot < en; dot++) { 
-           leds[dot] = CRGB::Black;
+        for(int dot = st; dot < 92; dot++) { //reset tail left
+           TAIL_Leds[dot] = CRGB::Black;
         } 
-
-        leds[48]  = CRGB::DarkOrange;
-        leds[49]  = CRGB::DarkOrange;
-        leds[50]  = CRGB::DarkOrange;
-        leds[51]  = CRGB::DarkOrange;
-        leds[52]  = CRGB::DarkOrange;
-        leds[53]  = CRGB::DarkOrange;
-        leds[59]  = CRGB::DarkOrange;
-        leds[60]  = CRGB::DarkOrange;
-        leds[61]  = CRGB::DarkOrange;
-        leds[68]  = CRGB::DarkOrange;
-        leds[69]  = CRGB::DarkOrange;
-        leds[70]  = CRGB::DarkOrange;
-        leds[81]  = CRGB::DarkOrange;
-        leds[82]  = CRGB::DarkOrange;
-        leds[83]  = CRGB::DarkOrange;
-        leds[88]  = CRGB::DarkOrange;
-        leds[89]  = CRGB::DarkOrange;
-        leds[90]  = CRGB::DarkOrange;
-
+         for(int dot = 0; dot < 40; dot++) {  //reset front left
+           LFM_Leds[dot] = CRGB::Black;
+        } 
         FastLED.show();
-        LA = 4;
+        LA = 1;
       }
       else if (LA != 100){
         if (LA >= en){ 
-           
         LA = 100;
         }
         else {
-          if (LA == 4){
-           leds[46]  = CRGB::DarkOrange;
-           leds[47]  = CRGB::DarkOrange;
-           leds[54]  = CRGB::DarkOrange;
-           leds[55]  = CRGB::DarkOrange;
-           leds[56]  = CRGB::DarkOrange;
-           leds[62]  = CRGB::DarkOrange;
-           leds[63]  = CRGB::DarkOrange;
-           leds[64]  = CRGB::DarkOrange;
-           leds[71]  = CRGB::DarkOrange;
-           leds[72]  = CRGB::DarkOrange;
-           leds[73]  = CRGB::DarkOrange;
-           leds[84]  = CRGB::DarkOrange;
-           leds[85]  = CRGB::DarkOrange;
-           leds[86]  = CRGB::DarkOrange;
-           leds[91]  = CRGB::DarkOrange;
+           if (LA == 1){
+            
+           TAIL_Leds[88]  = CRGB::DarkOrange;
+           TAIL_Leds[81]  = CRGB::DarkOrange;
+           TAIL_Leds[68]  = CRGB::DarkOrange;
+           TAIL_Leds[59]  = CRGB::DarkOrange;
+           TAIL_Leds[51]  = CRGB::DarkOrange;
+           TAIL_Leds[50]  = CRGB::DarkOrange;
 
+           LFM_Leds[24]  = CRGB::DarkOrange;
+           LFM_Leds[23]  = CRGB::DarkOrange;
+           LFM_Leds[8]   = CRGB::DarkOrange;
+           LFM_Leds[7]   = CRGB::DarkOrange;
+           
+           NoLED();
            FastLED.show();
            LA = 2; 
           }
-           else if (LA == 2){
+          else if (LA == 2){
+            
+           TAIL_Leds[89]  = CRGB::DarkOrange;
+           TAIL_Leds[82]  = CRGB::DarkOrange;
+           TAIL_Leds[69]  = CRGB::DarkOrange;
+           TAIL_Leds[60]  = CRGB::DarkOrange;
+           TAIL_Leds[52]  = CRGB::DarkOrange;
+           TAIL_Leds[49]  = CRGB::DarkOrange;
 
-           leds[57]  = CRGB::DarkOrange;
-           leds[58]  = CRGB::DarkOrange;
-           leds[65]  = CRGB::DarkOrange;
-           leds[66]  = CRGB::DarkOrange;
-           leds[67]  = CRGB::DarkOrange;
-           leds[74]  = CRGB::DarkOrange;
-           leds[75]  = CRGB::DarkOrange;
-           leds[76]  = CRGB::DarkOrange;
-           leds[87]  = CRGB::DarkOrange;
+           LFM_Leds[25]  = CRGB::DarkOrange;
+           LFM_Leds[22] = CRGB::DarkOrange;
+           LFM_Leds[9] = CRGB::DarkOrange;
+           LFM_Leds[6] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 3; 
+          }
+          else if (LA == 3){
+ 
+           TAIL_Leds[90]  = CRGB::DarkOrange;
+           TAIL_Leds[83]  = CRGB::DarkOrange;
+           TAIL_Leds[70]  = CRGB::DarkOrange;
+           TAIL_Leds[61]  = CRGB::DarkOrange;
+           TAIL_Leds[53]  = CRGB::DarkOrange;
+           TAIL_Leds[48]  = CRGB::DarkOrange;
+  
+           LFM_Leds[26]  = CRGB::DarkOrange;
+           LFM_Leds[21] = CRGB::DarkOrange;
+           LFM_Leds[10] = CRGB::DarkOrange;
+           LFM_Leds[5] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 4; 
+          }
+          else if (LA == 4){
+
+           TAIL_Leds[91]  = CRGB::DarkOrange;
+           TAIL_Leds[84]  = CRGB::DarkOrange;
+           TAIL_Leds[71]  = CRGB::DarkOrange;
+           TAIL_Leds[62]  = CRGB::DarkOrange;
+           TAIL_Leds[54]  = CRGB::DarkOrange;
+           TAIL_Leds[47]  = CRGB::DarkOrange;
+
+           LFM_Leds[27]  = CRGB::DarkOrange;
+           LFM_Leds[20] = CRGB::DarkOrange;
+           LFM_Leds[11] = CRGB::DarkOrange;
+           LFM_Leds[4] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 5; 
+          }
+          else if (LA == 5){
+
+           TAIL_Leds[85]  = CRGB::DarkOrange;
+           TAIL_Leds[72]  = CRGB::DarkOrange;
+           TAIL_Leds[63]  = CRGB::DarkOrange;
+           TAIL_Leds[55]  = CRGB::DarkOrange;
+           TAIL_Leds[46]  = CRGB::DarkOrange;
+ 
+           LFM_Leds[28]  = CRGB::DarkOrange;
+           LFM_Leds[19] = CRGB::DarkOrange;
+           LFM_Leds[12] = CRGB::DarkOrange;
+           LFM_Leds[3] = CRGB::DarkOrange;
+           NoLED();
+                      
+           FastLED.show();
+           LA = 6; 
+          }
+          else if (LA == 6){
+
+           TAIL_Leds[86]  = CRGB::DarkOrange;
+           TAIL_Leds[73]  = CRGB::DarkOrange;
+           TAIL_Leds[64]  = CRGB::DarkOrange;
+           TAIL_Leds[56]  = CRGB::DarkOrange;
+           // back
+           LFM_Leds[29]  = CRGB::DarkOrange;
+           LFM_Leds[18] = CRGB::DarkOrange;
+           LFM_Leds[13] = CRGB::DarkOrange;
+           LFM_Leds[2] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 7; 
+          }
+          else if (LA == 7){
+
+           TAIL_Leds[87]  = CRGB::DarkOrange;
+           TAIL_Leds[74]  = CRGB::DarkOrange;
+           TAIL_Leds[65]  = CRGB::DarkOrange;
+           TAIL_Leds[57]  = CRGB::DarkOrange;
+
+           LFM_Leds[30]  = CRGB::DarkOrange;
+           LFM_Leds[17] = CRGB::DarkOrange;
+           LFM_Leds[14] = CRGB::DarkOrange;
+           LFM_Leds[1] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 8; 
+          }
+          else if (LA == 8){
+
+           TAIL_Leds[75]  = CRGB::DarkOrange;
+           TAIL_Leds[66]  = CRGB::DarkOrange;
+           TAIL_Leds[58]  = CRGB::DarkOrange;
+
+           LFM_Leds[31]  = CRGB::DarkOrange;
+           LFM_Leds[16] = CRGB::DarkOrange;
+           LFM_Leds[15] = CRGB::DarkOrange;
+           LFM_Leds[0] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           LA = 9; 
+          }
+          else if (LA == 9){
+
+           TAIL_Leds[67]  = CRGB::DarkOrange;
+           TAIL_Leds[76]  = CRGB::DarkOrange;
+
+           LFM_Leds[36]  = CRGB::DarkOrange;
+           LFM_Leds[35] = CRGB::DarkOrange;
+           
+           NoLED();
+           FastLED.show();
+           LA = 10; 
+          }
+          else if (LA == 10){
+ 
+           TAIL_Leds[77]  = CRGB::DarkOrange;
+
+           LFM_Leds[37]  = CRGB::DarkOrange;
+           LFM_Leds[34] = CRGB::DarkOrange;
+           
+           NoLED();
 
            FastLED.show();
-           LA = 0; 
+           LA = 11; 
           }
-          else if (LA == 0){
+          else if (LA == 11){
 
-             leds[77]  = CRGB::DarkOrange;
-             leds[78]  = CRGB::DarkOrange;
+           TAIL_Leds[78]  = CRGB::DarkOrange;
 
-             FastLED.show();
-             LA = 36; 
-          }
-          else if (LA == 36){
-
-           leds[79]  = CRGB::DarkOrange;
-           leds[80]  = CRGB::DarkOrange;
-
+           LFM_Leds[38]  = CRGB::DarkOrange;
+           LFM_Leds[33] = CRGB::DarkOrange;
+           
+           NoLED();
            FastLED.show();
-           LA = 38; 
+           LA = 12; 
           }
-          else if (LA == 38){
+          else if (LA == 12){
 
-           //NoLED();
+           TAIL_Leds[79]  = CRGB::DarkOrange;
+
+           LFM_Leds[39] = CRGB::DarkOrange;
+           LFM_Leds[32] = CRGB::DarkOrange;
+
+           NoLED();
+           FastLED.show();
+           LA = 13; 
+          }
+          else if (LA == 13){
+            // front
+           TAIL_Leds[80]  = CRGB::DarkOrange;
+           
+           FastLED.show();
+           LA = 15; 
+          }
+          else if (LA == 15){
+
+           NoLED();
            FastLED.show();
            LA = 91; 
           }    
@@ -606,6 +451,259 @@ void KnipperLichtLAchterNEW(int st,int en, int fade){
      }
    }  
 }
+
+
+void MirrorR_run(int st,int en, int fade){
+   if ( chrono_blinkerR.hasPassed(10) ){
+     //chrono_blinkerR.restart(); // restart the crono so that it triggers again later
+      if (RA == 100){
+        for(int dot = st; dot < en; dot++) { 
+           TAIL_Leds[dot] = CRGB::Black;
+        } 
+         for(int dot = 0; dot < 40; dot++) { 
+           RFM_Leds[dot] = CRGB::Black;
+        } 
+        FastLED.show();
+        RA = 1;
+      }
+      
+      else if (RA != 100){
+        if (RA >= en){ 
+           
+        RA = 100;
+        }
+        else {
+           if (RA == 1){
+           TAIL_Leds[45]  = CRGB::DarkOrange;
+           TAIL_Leds[35]  = CRGB::DarkOrange;
+           TAIL_Leds[22]  = CRGB::DarkOrange;
+           TAIL_Leds[21]  = CRGB::DarkOrange;
+           TAIL_Leds[5]  = CRGB::DarkOrange;
+           TAIL_Leds[4]  = CRGB::DarkOrange;
+
+           RFM_Leds[24]  = CRGB::DarkOrange;
+           RFM_Leds[23] = CRGB::DarkOrange;
+           RFM_Leds[8] = CRGB::DarkOrange;
+           RFM_Leds[7] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 2; 
+          }
+          else if (RA == 2){
+
+           TAIL_Leds[44]  = CRGB::DarkOrange;
+           TAIL_Leds[36]  = CRGB::DarkOrange;
+           TAIL_Leds[23]  = CRGB::DarkOrange;
+           TAIL_Leds[20]  = CRGB::DarkOrange;
+           TAIL_Leds[6]  = CRGB::DarkOrange;
+           TAIL_Leds[3]  = CRGB::DarkOrange;
+
+           RFM_Leds[25]  = CRGB::DarkOrange;
+           RFM_Leds[22] = CRGB::DarkOrange;
+           RFM_Leds[9] = CRGB::DarkOrange;
+           RFM_Leds[6] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 3; 
+          }
+          else if (RA == 3){
+
+           TAIL_Leds[43]  = CRGB::DarkOrange;
+           TAIL_Leds[37]  = CRGB::DarkOrange;
+           TAIL_Leds[24]  = CRGB::DarkOrange;
+           TAIL_Leds[19]  = CRGB::DarkOrange;
+           TAIL_Leds[7]  = CRGB::DarkOrange;
+           TAIL_Leds[2]  = CRGB::DarkOrange;
+
+           RFM_Leds[26]  = CRGB::DarkOrange;
+           RFM_Leds[21] = CRGB::DarkOrange;
+           RFM_Leds[10] = CRGB::DarkOrange;
+           RFM_Leds[5] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 4; 
+          }
+          else if (RA == 4){
+ 
+           TAIL_Leds[42]  = CRGB::DarkOrange;
+           TAIL_Leds[38]  = CRGB::DarkOrange;
+           TAIL_Leds[25]  = CRGB::DarkOrange;
+           TAIL_Leds[18]  = CRGB::DarkOrange;
+           TAIL_Leds[8]  = CRGB::DarkOrange;
+           TAIL_Leds[1]  = CRGB::DarkOrange;
+
+           RFM_Leds[27]  = CRGB::DarkOrange;
+           RFM_Leds[20] = CRGB::DarkOrange;
+           RFM_Leds[11] = CRGB::DarkOrange;
+           RFM_Leds[4] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 5; 
+          }
+          else if (RA == 5){
+
+           TAIL_Leds[39]  = CRGB::DarkOrange;
+           TAIL_Leds[26]  = CRGB::DarkOrange;
+           TAIL_Leds[17]  = CRGB::DarkOrange;
+           TAIL_Leds[9]  = CRGB::DarkOrange;
+           TAIL_Leds[0]  = CRGB::DarkOrange;
+
+           RFM_Leds[28]  = CRGB::DarkOrange;
+           RFM_Leds[19] = CRGB::DarkOrange;
+           RFM_Leds[12] = CRGB::DarkOrange;
+           RFM_Leds[3] = CRGB::DarkOrange;
+           NoLED();
+                      
+           FastLED.show();
+           RA = 6; 
+          }
+          else if (RA == 6){
+
+           TAIL_Leds[40]  = CRGB::DarkOrange;
+           TAIL_Leds[27]  = CRGB::DarkOrange;
+           TAIL_Leds[16]  = CRGB::DarkOrange;
+           TAIL_Leds[10]  = CRGB::DarkOrange;
+
+           RFM_Leds[29]  = CRGB::DarkOrange;
+           RFM_Leds[18] = CRGB::DarkOrange;
+           RFM_Leds[13] = CRGB::DarkOrange;
+           RFM_Leds[2] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 7; 
+          }
+          else if (RA == 7){
+            
+           TAIL_Leds[41]  = CRGB::DarkOrange;
+           TAIL_Leds[28]  = CRGB::DarkOrange;
+           TAIL_Leds[15]  = CRGB::DarkOrange;
+           TAIL_Leds[11]  = CRGB::DarkOrange;
+
+           RFM_Leds[30]  = CRGB::DarkOrange;
+           RFM_Leds[17] = CRGB::DarkOrange;
+           RFM_Leds[14] = CRGB::DarkOrange;
+           RFM_Leds[1] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 8; 
+          }
+          else if (RA == 8){
+
+           TAIL_Leds[29]  = CRGB::DarkOrange;
+           TAIL_Leds[14]  = CRGB::DarkOrange;
+           TAIL_Leds[12]  = CRGB::DarkOrange;
+ 
+           RFM_Leds[31]  = CRGB::DarkOrange;
+           RFM_Leds[16] = CRGB::DarkOrange;
+           RFM_Leds[15] = CRGB::DarkOrange;
+           RFM_Leds[0] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 9; 
+          }
+          else if (RA == 9){
+
+           TAIL_Leds[30]  = CRGB::DarkOrange;
+           TAIL_Leds[13]  = CRGB::DarkOrange;
+
+           RFM_Leds[39]  = CRGB::DarkOrange;
+           RFM_Leds[32] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 10; 
+          }
+          else if (RA == 10){
+
+           TAIL_Leds[31]  = CRGB::DarkOrange;
+
+           RFM_Leds[38]  = CRGB::DarkOrange;
+           RFM_Leds[33] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 11; 
+          }
+          else if (RA == 11){
+
+           TAIL_Leds[32]  = CRGB::DarkOrange;
+
+           RFM_Leds[37]  = CRGB::DarkOrange;
+           RFM_Leds[34] = CRGB::DarkOrange;
+           NoLED();
+           FastLED.show();
+           RA = 12; 
+          }
+          else if (RA == 12){
+
+            TAIL_Leds[33]  = CRGB::DarkOrange;
+
+           RFM_Leds[36] = CRGB::DarkOrange;
+           RFM_Leds[35] = CRGB::DarkOrange;
+           FastLED.show();
+           RA = 13; 
+          }
+          else if (RA == 13){
+            
+           TAIL_Leds[34]  = CRGB::DarkOrange;
+
+           FastLED.show();
+           RA = 15; 
+          }
+          else if (RA == 15){
+
+           NoLED();
+           FastLED.show();
+           RA = 46; 
+          }    
+        }
+      }
+   }  
+}
+
+// normal blinking Left side //still in development
+void MirrorL_normal(int st,int en, int fade){ 
+    if ( chrono_blinkerL.hasPassed(59) ) { // need to use a other Chrono
+     //chrono_blinkerL.restart(); // restart the crono so that it triggers again later
+     Serial.println ("MirrorL_normal Fuction");
+      if (LV == 100){
+        Serial.println ("MirrorL_normal LV = 100");
+        for(int dot = st; dot < en; dot++) { 
+              RFM_Leds[dot] = CRGB::Blue;
+              RFM_Leds[dot].fadeToBlackBy(fade);
+              LFM_Leds[dot] = CRGB::Black;
+              LFM_Leds[dot].fadeToBlackBy(fade);
+        }
+       
+        FastLED.show();
+        LV = 1;
+      }
+      else if (LV == 1){
+         Serial.println ("MirrorL_normal LV = 1");
+            
+           LV = 2; 
+      }   
+      else if (LV == 2){
+         Serial.println ("MirrorL_normal LV = 2");
+           for(int dot = st; dot < en; dot++) { 
+              LFM_Leds[dot] = CRGB::Blue;
+              LFM_Leds[dot].fadeToBlackBy(fade);
+              RFM_Leds[dot] = CRGB::Black;
+              RFM_Leds[dot].fadeToBlackBy(fade);
+              NoLED();
+           }
+           NoLED();
+           FastLED.show();
+           LV = 100; 
+          }
+    }
+}
+     
+
+// Normal blinker Right ( still in development)
+void MirrorR_normal(int st,int en, int fade){
+ 
+}
+
+
 
 
 
@@ -619,54 +717,70 @@ void NoLED(){
   
 }
 
-// do not uses ;-)
-void Police(int st,int en, int fade ){
-  //FastLED.clear(); 
-  delay(140);
-  for(int dot = st; dot < en; dot++) { 
-              LFM_Leds[dot] = CRGB::Blue;
-              LFM_Leds[dot].fadeToBlackBy(fade);
-              RFM_Leds[dot] = CRGB::Black;
-              RFM_Leds[dot].fadeToBlackBy(fade);
-              NoLED();
-  }
-  FastLED.show();
-  delay(140);
-  for(int dot = st; dot < en; dot++) { 
-            LFM_Leds[dot] = CRGB::Black;
-             LFM_Leds[dot].fadeToBlackBy(fade);
-             RFM_Leds[dot] = CRGB::Blue;
-             RFM_Leds[dot].fadeToBlackBy(fade);
-  }
-  FastLED.show();
-        
-}
-// if taillights needs to be turned off
-void AchterLichtOFF(int st,int en){
+
+// turn off taillights
+void Tail_LightOFF(int st,int en){
   //FastLED.clear(); 
   for(int dot = st; dot < en; dot++) { 
-            leds[dot] = CRGB::Black;
+            TAIL_Leds[dot] = CRGB::Black;
             
         }
         FastLED.show();
 }
 
-// KnipperLicht voledig ( nog aanpassen heeft nog delay) 
-void KnipperLicht(int st,int en, int fade ){
-  
-  for(int dot = st; dot < en; dot++) { 
-      leds[dot] = CRGB::DarkOrange;
-      leds[dot].fadeToBlackBy(fade);    
-  }
-  FastLED.show();
-  delay(400);
-  
-  for(int dot = st; dot < en; dot++) { 
-      leds[dot] = CRGB::Black;
-      leds[dot].fadeToBlackBy(fade);
-  }
-  FastLED.show();
-  
-  delay(400);
-        
+// traffic - warning lights ( still in development)
+void TrafficLights(int st,int en, int fade){
+    if ( chrono_blinkerL.hasPassed(59) ) { // returns true if it passed 250 ms since it was started
+     //chrono_blinkerL.restart(); // restart the crono so that it triggers again later
+     Serial.println ("MirrorL_normal Fuction");
+      if (LV == 100){
+        //DRL
+        for(int dot = st; dot < en; dot++) { 
+              RFM_Leds[dot] = CRGB::DarkOrange;
+              RFM_Leds[dot].fadeToBlackBy(fade);
+              LFM_Leds[dot] = CRGB::Black;
+              LFM_Leds[dot].fadeToBlackBy(fade);
+        }
+        //tail left
+         for(int dot = 0; dot < 46; dot++) { 
+               TAIL_Leds[dot] = CRGB::DarkOrange;
+               TAIL_Leds[dot].fadeToBlackBy(fade);
+        }
+        //tail right
+         for(int dot = st; 46 < 92; dot++) { 
+              TAIL_Leds[dot] = CRGB::Black;
+              TAIL_Leds[dot].fadeToBlackBy(fade);
+        }
+       NoLED();
+        FastLED.show();
+        LV = 1;
+      }
+      else if (LV == 1){
+         Serial.println ("MirrorL_normal LV = 1");
+            
+           LV = 2; 
+      }   
+      else if (LV == 2){
+         Serial.println ("MirrorL_normal LV = 2");
+           for(int dot = st; dot < en; dot++) { 
+              LFM_Leds[dot] = CRGB::DarkOrange;
+              LFM_Leds[dot].fadeToBlackBy(fade);
+              RFM_Leds[dot] = CRGB::Black;
+              RFM_Leds[dot].fadeToBlackBy(fade);
+           }
+           //tail left
+         for(int dot = 46; dot < 91; dot++) { 
+               TAIL_Leds[dot] = CRGB::DarkOrange;
+               TAIL_Leds[dot].fadeToBlackBy(fade);
+        }
+        //tail right
+         for(int dot = st; 0 < 45; dot++) { 
+              TAIL_Leds[dot] = CRGB::Black;
+              TAIL_Leds[dot].fadeToBlackBy(fade);
+        }
+           NoLED();
+           FastLED.show();
+           LV = 100; 
+          }
+    }
 }
